@@ -1,6 +1,10 @@
-# px: A simple proxmox VE API cli
+# px
 
-A simple cli to interact with Proxmox VE API
+A simple cli to interact with Proxmox VE API. I wrote this mainly as an easy shortcut to launch remote viewer on Proxmox VE virtual machines without having to mess with the website.
+
+![outm](https://github.com/eskerda/px/assets/208952/62c124c2-e3bd-416c-9bb4-117f50fa571f)
+
+
 
 ## Usage
 

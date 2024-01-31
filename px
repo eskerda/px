@@ -10,6 +10,7 @@ PX=$(basename $0)
 HOST=${PX_HOST:-$(hostname -f)}
 TOKEN=${PX_TOKEN:-'root@pam!some-key-id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'}
 NODE=${PX_NODE}
+VMID=${PX_VMID}
 
 
 function usage {
@@ -114,11 +115,11 @@ function main {
 
     case $ACTION in
         rv)
-          local VMID=$1
+          VMID=${1:-$VMID}
           if [[ -z $VMID ]]; then
-              vms=$(c_proxmox /json/nodes/$NODE/qemu | jq -r '.data[].name, .data[].vmid')
-              VMID=$(echo ${vms[@]} | fzf)
-              VMID=${VMID##* }
+              VMID=$(c_proxmox /json/nodes/$NODE/qemu | jq -r '.data[] | "\(.vmid|tostring) \(.name)"' | fzf)
+              [[ ! $? -eq 0 ]] || [[ -z $VMID ]] && err! "select a VM or use '$PX rv <VM-id>'"
+              VMID=${VMID%% *}
           fi
 
           remote-viewer "${_NP_ARGS[@]}" <(

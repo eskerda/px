@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+
+function inf  { >&2 printf "\033[34m[+]\033[0m %b\n" "$@" ; }
+function warn { >&2 printf "\033[33m[!]\033[0m %b\n" "$@" ; }
+function err  { >&2 printf "\033[31m[!]\033[0m %b\n" "$@" ; }
+function err! { err "$@" && exit 1; }
+
+PX=$(basename $0)
+
+HOST=${PX_HOST:-$(hostname -f)}
+TOKEN=${PX_TOKEN:-'root@pam!some-key-id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'}
+NODE=${PX_NODE}
+
+
+function usage {
+    cat << EOF
+                      ____
+                 ____|    \\
+                (____|     \`._____
+                 ____|       _|___
+                (____|     .'
+                     |____/
+
+            $PX: a simple proxmox VE API cli
+
+Usage: $PX action [options...]
+
+Options:
+  -n, --node        set target node (alias: \$PX_NODE)
+  -H, --host        set target host (alias: \$PX_HOST)
+  -t, --token       set auth token  (alias: \$PX_TOKEN)
+  -v, --verbose     echo every command that gets executed
+  -h, --help        display this help
+
+Commands:
+  help                      Show usage
+
+  ls                        List QEMU VMs
+
+  spice <vmid>              Show spice config file for a given VM id
+
+  rv [<vmid>]               Launch remote viewer on VM id. If none is specified
+                            list VMs and filters them with fzf
+
+  rpc <url> [options...]    Call proxmox API url with extra curl args
+                            API docs: https://pve.proxmox.com/pve-docs/api-viewer/
+
+EOF
+}
+
+
+function parse_args {
+  _ARGS=()
+  _NP_ARGS=()
+
+  ! [[ $1 =~ ^- ]] && ACTION=$1 && shift
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -V|--verbose)
+        set -x
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      -H|--host)
+        HOST=$2
+        shift
+        ;;
+      -n|--node)
+        NODE=$2
+        shift
+        ;;
+      -t|--token)
+        TOKEN=$2
+        shift
+        ;;
+      -)
+        _ARGS+=("$(cat "$2")")
+        shift
+        ;;
+      --)
+        shift
+        _NP_ARGS+=("$@")
+        break
+        ;;
+      *)
+        _ARGS+=("$1")
+        ;;
+    esac
+    shift
+  done
+}
+
+
+function c_proxmox {
+    local uri=$1; shift
+
+    # remove leading /api2 api2 and /
+    uri="${uri/#\/api2/}"
+    uri="${uri/#api2/}"
+    uri="${uri/#\//}"
+
+    curl "https://$HOST:8006/api2/$uri" \
+         -H "Authorization: PVEAPIToken=$TOKEN" \
+         $@ \
+         -f -s -S -k
+}
+
+
+function main {
+    parse_args "$@"
+    set -- "${_ARGS[@]}"
+
+    case $ACTION in
+        rv)
+          local VMID=$1
+          if [[ -z $VMID ]]; then
+              vms=$(c_proxmox /json/nodes/$NODE/qemu | jq -r '.data[].name, .data[].vmid')
+              VMID=$(echo ${vms[@]} | fzf)
+              VMID=${VMID##* }
+          fi
+
+          remote-viewer <(
+            c_proxmox /spiceconfig/nodes/$NODE/qemu/$VMID/spiceproxy -d "proxy=$HOST"
+          ) &> /dev/null
+          ;;
+        spice)
+          [[ -z $2 ]] && err! "No VMid specified, try, '$PX ls'"
+          c_proxmox /spiceconfig/nodes/$NODE/qemu/$1/spiceproxy -d "proxy=$HOST"
+          ;;
+        ls)
+          c_proxmox /json/nodes/$NODE/qemu | jq
+          ;;
+        rpc)
+          if [[ "$1" =~ json ]]; then
+             c_proxmox $@ | jq
+          else
+             c_proxmox $@
+          fi
+          ;;
+        help)
+          usage
+          ;;
+        *)
+          usage
+          exit 1
+          ;;
+    esac
+}
+
+
+main "$@"

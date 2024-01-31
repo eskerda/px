@@ -4,7 +4,9 @@ A simple cli to interact with Proxmox VE API. I wrote this mainly as an easy sho
 
 ![outm](https://github.com/eskerda/px/assets/208952/62c124c2-e3bd-416c-9bb4-117f50fa571f)
 
+# Requirements
 
+This script assumes `bash`, `jq`, `fzf` and `remote-viewer` (virt-viewer) are available on your system.
 
 ## Usage
 
@@ -43,3 +45,17 @@ Commands:
                             API docs: https://pve.proxmox.com/pve-docs/api-viewer/
 
 ```
+
+To interact with Proxmox VE API you will need to create an API token. Simply go to pool view / datacenter / API Tokens / Add. Then Select user / Add token ID / Either disable privilage separation or grant `["perm","/vms/{vmid}",["VM.Console"]]`
+
+This token must be either set as `$PX_TOKEN` on the environment, or passed along with a `-t` or `--token` flag. Set also the proxmox host and if desired, a default node.
+
+```bash
+$ px rpc json/nodes -t user@realm!some-key-id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -H 192.168.8.101
+$ export PX_TOKEN='user@realm!some-key-id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+$ export PX_HOST='192.168.8.101'
+$ px rpc json/nodes
+$ export PX_NODE='hope'
+```
+
+Now, to open remote-viewer on a VM, simply run `px rv` and select a VM.

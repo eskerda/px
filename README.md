@@ -59,3 +59,18 @@ $ export PX_NODE='hope'
 ```
 
 Now, to open remote-viewer on a VM, simply run `px rv` and select a VM.
+
+### Pass extra arguments to remote-viewer
+
+```bash
+$ px rv -- --full-screen
+```
+
+### Explore Proxmox VE API
+
+See available resources at https://pve.proxmox.com/pve-docs/api-viewer/
+
+```bash
+$ px rpc json/nodes
+$ px rpc json/nodes/<node>/qemu
+```

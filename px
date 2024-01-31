@@ -127,7 +127,8 @@ function main {
           ) &> /dev/null
           ;;
         spice)
-          [[ -z $2 ]] && err! "No VMid specified, try, '$PX ls'"
+          VMID=${1:-$VMID}
+          [[ -z $VMID ]] && err! "No VMid specified, try, '$PX ls'"
           c_proxmox /spiceconfig/nodes/$NODE/qemu/$1/spiceproxy -d "proxy=$HOST"
           ;;
         ls)

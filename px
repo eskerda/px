@@ -121,7 +121,7 @@ function main {
               VMID=${VMID##* }
           fi
 
-          remote-viewer <(
+          remote-viewer "${_NP_ARGS[@]}" <(
             c_proxmox /spiceconfig/nodes/$NODE/qemu/$VMID/spiceproxy -d "proxy=$HOST"
           ) &> /dev/null
           ;;
